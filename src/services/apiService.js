@@ -1,14 +1,106 @@
-import { apiClient } from '../lib/api';
+// MongoDB Backend API Service
+const API_BASE_URL = 'http://localhost:5000/api';
 
-// Patient Me API - Matches your PatientMeView exactly
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// API Client
+const apiCall = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  try {
+    const response = await fetch(url, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'API request failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`API Error (${endpoint}):`, error);
+    throw error;
+  }
+};
+
+// Authentication APIs
+export const loginUser = async (email, password, role) => {
+  try {
+    const response = await apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role })
+    });
+
+    if (response.success && response.token) {
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userData', JSON.stringify(response.user));
+      return { success: true, user: response.user, token: response.token };
+    }
+
+    return { success: false, error: response.message };
+  } catch (error) {
+    return { success: false, error: error.message || 'Login failed' };
+  }
+};
+
+export const registerUser = async (userData) => {
+  try {
+    const response = await apiCall('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+
+    if (response.success) {
+      return { success: true, user: response.user };
+    }
+
+    return { success: false, error: response.message };
+  } catch (error) {
+    return { success: false, error: error.message || 'Registration failed' };
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await apiCall('/auth/me');
+    return response.success ? response.user : null;
+  } catch (error) {
+    // If token is invalid, clear storage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    return null;
+  }
+};
+
+// Patient Me API - Get current patient profile
 export const getPatientMe = async () => {
   try {
-    const response = await apiClient.get('/patient/me/');
-    // Expected response: { userId, name, insuranceId, coverage, expiry }
-    return response.data;
+    const user = await getCurrentUser();
+    if (user && user.role === 'patient') {
+      return {
+        userId: user._id,
+        name: user.name,
+        insuranceId: user.profile.memberId,
+        coverage: user.profile.planType,
+        expiry: user.profile.effectiveDate,
+        ...user.profile
+      };
+    }
+    throw new Error('Not a patient user');
   } catch (error) {
-    console.error('API Error:', error);
-    // Return mock data if API fails to match your backend structure
+    console.error('Get Patient Me Error:', error);
+    // Return fallback data for development
     return {
       userId: 'P-12345',
       name: 'John Doe',
@@ -96,26 +188,14 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-// Login API (for authentication)
-export const loginUser = async (credentials) => {
-  try {
-    const response = await apiClient.post('/auth/login/', credentials);
-    if (response.data.token) {
-      localStorage.setItem('authToken', response.data.token);
-    }
-    return response.data;
-  } catch (error) {
-    throw new Error('Login failed');
-  }
-};
-
 // Logout API
 export const logoutUser = async () => {
   try {
-    await apiClient.post('/auth/logout/');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    return { success: true };
   } catch (error) {
-    // Even if logout fails on server, clear local storage
-    localStorage.removeItem('authToken');
+    console.error('Logout error:', error);
+    return { success: false };
   }
 };
