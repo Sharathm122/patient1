@@ -14,11 +14,19 @@ import {
   Upload,
   Eye,
   Download,
-  AlertCircle
+  AlertCircle,
+  X,
+  User,
+  CreditCard,
+  Phone,
+  MapPin
 } from 'lucide-react';
 
 function PatientDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   // Mock data
   const insuranceInfo = {
@@ -131,6 +139,41 @@ function PatientDashboard() {
     }
   };
 
+  // Handler functions
+  const handleViewDetails = (claim) => {
+    setSelectedClaim(claim);
+    setShowClaimModal(true);
+  };
+
+  const handleDownload = (claim) => {
+    // Simulate document download
+    const filename = `${claim.id}_${claim.service.replace(/\s+/g, '_')}_Receipt.pdf`;
+    
+    // Create a fake download
+    const element = document.createElement('a');
+    const file = new Blob([`Claim Receipt - ${claim.id}\n\nService: ${claim.service}\nProvider: ${claim.provider}\nDate: ${claim.date}\nAmount: ${claim.amount}\nStatus: ${claim.status}\n\nDescription: ${claim.description}`], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = filename;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    
+    // Show success message
+    alert(`Document "${filename}" has been downloaded successfully!`);
+  };
+
+  const handleViewAllNotifications = () => {
+    setShowNotifications(true);
+  };
+
+  const handleUploadDocuments = () => {
+    alert('Upload Documents functionality - This would open a file picker to upload medical documents, receipts, or other claim-related files.');
+  };
+
+  const handleViewAllClaims = () => {
+    alert('View All Claims - This would navigate to a comprehensive claims history page with filtering and search options.');
+  };
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -139,7 +182,10 @@ function PatientDashboard() {
           <h1 className="text-3xl text-gray-900 mb-2">Welcome back, John</h1>
           <p className="text-gray-600">Here's an overview of your health insurance claims and coverage</p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg rounded-xl">
+        <Button 
+          onClick={handleUploadDocuments}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg rounded-xl"
+        >
           <Upload className="w-4 h-4 mr-2" />
           Upload Documents
         </Button>
@@ -213,7 +259,11 @@ function PatientDashboard() {
                   <FileText className="h-5 w-5 text-blue-600" />
                   <CardTitle className="text-xl">Recent Claims</CardTitle>
                 </div>
-                <Button variant="outline" className="rounded-xl">
+                <Button 
+                  variant="outline" 
+                  onClick={handleViewAllClaims}
+                  className="rounded-xl"
+                >
                   View All Claims
                 </Button>
               </div>
@@ -255,11 +305,21 @@ function PatientDashboard() {
                       </div>
                       
                       <div className="flex space-x-2 pt-2">
-                        <Button variant="outline" size="sm" className="rounded-lg">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewDetails(claim)}
+                          className="rounded-lg"
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Button>
-                        <Button variant="outline" size="sm" className="rounded-lg">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDownload(claim)}
+                          className="rounded-lg"
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>
@@ -316,13 +376,188 @@ function PatientDashboard() {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full mt-4 rounded-xl">
+              <Button 
+                variant="outline" 
+                onClick={handleViewAllNotifications}
+                className="w-full mt-4 rounded-xl"
+              >
                 View All Notifications
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Claim Details Modal */}
+      {showClaimModal && selectedClaim && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Claim Details</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowClaimModal(false)}
+                  className="rounded-lg"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Claim ID</p>
+                      <p className="font-semibold">{selectedClaim.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Status</p>
+                      <Badge className={getStatusColor(selectedClaim.status)}>
+                        {selectedClaim.status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Service Date</p>
+                      <p className="font-semibold">{selectedClaim.date}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Amount</p>
+                      <p className="font-semibold text-lg">{selectedClaim.amount}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Service Information</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <User className="h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-600">Healthcare Provider</p>
+                          <p className="font-medium">{selectedClaim.provider}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-600">Service Type</p>
+                          <p className="font-medium">{selectedClaim.service}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <AlertCircle className="h-5 w-5 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-600">Description</p>
+                          <p className="text-gray-900">{selectedClaim.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Processing Status</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Progress</span>
+                        <span>{selectedClaim.progress}% Complete</span>
+                      </div>
+                      <Progress value={selectedClaim.progress} className="h-3" />
+                      <div className="text-sm text-gray-600">
+                        {selectedClaim.status === 'approved' && 'Your claim has been approved and payment is being processed.'}
+                        {selectedClaim.status === 'processing' && 'Your claim is currently under review by our team.'}
+                        {selectedClaim.status === 'denied' && 'This claim was denied. You may file an appeal if you disagree with this decision.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <Button 
+                    onClick={() => handleDownload(selectedClaim)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Receipt
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowClaimModal(false)}
+                    className="rounded-lg"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">All Notifications</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowNotifications(false)}
+                  className="rounded-lg"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="p-6 border border-gray-200 rounded-xl hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                          {notification.unread && (
+                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                              New
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-gray-700 mb-3">{notification.message}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-500">{notification.time}</p>
+                          <Button variant="outline" size="sm" className="rounded-lg">
+                            Mark as Read
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end pt-6">
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowNotifications(false)}
+                  className="rounded-lg"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

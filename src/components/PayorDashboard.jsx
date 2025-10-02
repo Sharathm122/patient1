@@ -30,7 +30,11 @@ const PayorDashboard = () => {
                 <p className="text-gray-600">Welcome, Lisa Thompson</p>
               </div>
             </div>
-            <Button variant="outline" className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => alert('Profile Settings - Manage your payor administrator profile, permissions, and system preferences.')}
+              className="flex items-center space-x-2"
+            >
               <User className="w-4 h-4" />
               <span>Profile</span>
             </Button>
@@ -145,15 +149,26 @@ const PayorDashboard = () => {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start bg-purple-500 hover:bg-purple-600">
+                <Button 
+                  onClick={() => alert('Process Claims Queue - Open the claims processing interface to review, approve, or deny pending insurance claims.')}
+                  className="w-full justify-start bg-purple-500 hover:bg-purple-600"
+                >
                   <FileCheck className="w-4 h-4 mr-2" />
                   Process Claims Queue
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  onClick={() => alert('Review Fraud Alerts - Access the fraud detection system to investigate suspicious claims and patterns.')}
+                  className="w-full justify-start"
+                >
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   Review Fraud Alerts
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  onClick={() => alert('Provider Network - Manage healthcare provider partnerships, contracts, and network directory.')}
+                  className="w-full justify-start"
+                >
                   <Building2 className="w-4 h-4 mr-2" />
                   Provider Network
                 </Button>

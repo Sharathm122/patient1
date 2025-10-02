@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { User, Building2, Shield, Heart, Stethoscope, Activity, Eye, EyeOff, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authenticateUser, demoCredentials } from '../data/dummyAuth';
+import { loginUser, registerUser } from '../services/apiService';
 
 export default function LoginForm({ onLogin }) {
   const [activeTab, setActiveTab] = useState('patient');
@@ -47,30 +48,113 @@ export default function LoginForm({ onLogin }) {
     setError('');
 
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (isRegister) {
-        // For demo, just show success message for registration
-        setError('Registration successful! Please sign in.');
-        setIsRegister(false);
-        setFormData({ email: formData.email, password: '', confirmPassword: '' });
-      } else {
-        // Authenticate user with dummy data
-        const result = authenticateUser(formData.email, formData.password, activeTab);
-        
-        if (result.success) {
-          // Store user data and token in localStorage for demo
-          localStorage.setItem('authToken', result.token);
-          localStorage.setItem('userData', JSON.stringify(result.user));
+        // Create default profile based on role
+        const getDefaultProfile = (role, email) => {
+          const baseName = email.split('@')[0].replace(/[^a-zA-Z]/g, '');
+          const firstName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+          const lastName = 'User';
           
-          // Call parent login handler
-          onLogin(result.user.role, result.user);
+          switch(role) {
+            case 'patient':
+              return {
+                firstName,
+                lastName,
+                dateOfBirth: new Date('1990-01-01'),
+                phone: '(555) 000-0000',
+                address: '123 Main St, City, ST 12345',
+                memberId: `MEM${Date.now()}`,
+                groupNumber: 'GRP001',
+                insuranceProvider: 'Default Insurance',
+                planType: 'Standard Plan',
+                effectiveDate: new Date(),
+                copay: '$25',
+                deductible: '$1,000',
+                outOfPocketMax: '$5,000'
+              };
+            case 'provider':
+              return {
+                firstName: `Dr. ${firstName}`,
+                lastName,
+                specialty: 'General Medicine',
+                licenseNumber: `MD${Date.now()}`,
+                npiNumber: `${Date.now()}`.slice(-10),
+                clinic: 'Healthcare Center',
+                address: '456 Medical Ave, City, ST 12345',
+                phone: '(555) 000-0000',
+                fax: '(555) 000-0001',
+                yearsExperience: 5,
+                boardCertified: true
+              };
+            case 'payor':
+              return {
+                firstName,
+                lastName,
+                title: 'Claims Specialist',
+                department: 'Claims Processing',
+                company: 'Insurance Company',
+                employeeId: `EMP${Date.now()}`,
+                phone: '(555) 000-0000',
+                extension: '1001',
+                address: '789 Insurance Blvd, City, ST 12345',
+                region: 'Central',
+                authority: 'Claims Reviewer'
+              };
+            default:
+              return {};
+          }
+        };
+
+        // Register new user with MongoDB backend
+        const registerResult = await registerUser({
+          email: formData.email,
+          password: formData.password,
+          role: activeTab,
+          name: `${formData.email.split('@')[0].charAt(0).toUpperCase()}${formData.email.split('@')[0].slice(1)} User`,
+          profile: getDefaultProfile(activeTab, formData.email)
+        });
+        
+        if (registerResult.success) {
+          // After successful registration, automatically log the user in
+          const loginResult = await loginUser(formData.email, formData.password, activeTab);
+          
+          if (loginResult.success) {
+            // Call parent login handler
+            onLogin(loginResult.user.role, loginResult.user);
+          } else {
+            // Registration successful but auto-login failed
+            setError('Account created successfully! Please sign in with your new credentials.');
+            setIsRegister(false);
+            setFormData({ email: formData.email, password: '', confirmPassword: '' });
+          }
         } else {
-          setError(result.error);
+          setError(registerResult.error);
+        }
+      } else {
+        // Login with MongoDB backend
+        const loginResult = await loginUser(formData.email, formData.password, activeTab);
+        
+        if (loginResult.success) {
+          // Call parent login handler
+          onLogin(loginResult.user.role, loginResult.user);
+        } else {
+          // If MongoDB login fails, try fallback with dummy data
+          const fallbackResult = authenticateUser(formData.email, formData.password, activeTab);
+          
+          if (fallbackResult.success) {
+            // Store user data and token in localStorage for demo
+            localStorage.setItem('authToken', fallbackResult.token);
+            localStorage.setItem('userData', JSON.stringify(fallbackResult.user));
+            
+            // Call parent login handler
+            onLogin(fallbackResult.user.role, fallbackResult.user);
+          } else {
+            setError(loginResult.error);
+          }
         }
       }
     } catch (err) {
+      console.error('Authentication error:', err);
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);

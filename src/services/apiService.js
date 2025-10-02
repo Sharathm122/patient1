@@ -19,9 +19,14 @@ const apiCall = async (endpoint, options = {}) => {
     ...options,
   };
 
+  console.log(`Making API call to: ${url}`, config);
+
   try {
     const response = await fetch(url, config);
+    console.log(`API Response status: ${response.status}`);
+    
     const data = await response.json();
+    console.log('API Response data:', data);
 
     if (!response.ok) {
       throw new Error(data.message || 'API request failed');
@@ -30,6 +35,7 @@ const apiCall = async (endpoint, options = {}) => {
     return data;
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
+    console.error('Error details:', error.message);
     throw error;
   }
 };

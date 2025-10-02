@@ -29,7 +29,11 @@ const ProviderDashboard = () => {
                 <p className="text-gray-600">Welcome, Dr. Sarah Wilson</p>
               </div>
             </div>
-            <Button variant="outline" className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => alert('Profile Settings - View and edit your professional profile, credentials, and account settings.')}
+              className="flex items-center space-x-2"
+            >
               <User className="w-4 h-4" />
               <span>Profile</span>
             </Button>
@@ -143,15 +147,26 @@ const ProviderDashboard = () => {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start bg-green-500 hover:bg-green-600">
+                <Button 
+                  onClick={() => alert('Submit New Claim - Open the claim submission form to file insurance claims for patient services.')}
+                  className="w-full justify-start bg-green-500 hover:bg-green-600"
+                >
                   <FileText className="w-4 h-4 mr-2" />
                   Submit New Claim
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  onClick={() => alert('Schedule Appointment - Open the appointment scheduling system to book patient visits.')}
+                  className="w-full justify-start"
+                >
                   <Calendar className="w-4 h-4 mr-2" />
                   Schedule Appointment
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  onClick={() => alert('View All Patients - Access comprehensive patient directory with medical histories and contact information.')}
+                  className="w-full justify-start"
+                >
                   <Users className="w-4 h-4 mr-2" />
                   View All Patients
                 </Button>
