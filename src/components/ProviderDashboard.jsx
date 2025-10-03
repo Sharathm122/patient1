@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { 
@@ -14,6 +14,26 @@ import {
 } from 'lucide-react';
 
 const ProviderDashboard = () => {
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    // Get user data from localStorage or API
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserData(user);
+      
+      // Check if this is a new user
+      const isNew = user._id && user._id.includes('new') ||
+                    !user.profile?.specialization ||
+                    user.profile?.specialization === 'General Practice' ||
+                    new Date() - new Date(user.createdAt || 0) < 24 * 60 * 60 * 1000; // Less than 24 hours
+      
+      setIsNewUser(isNew);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
@@ -50,7 +70,7 @@ const ProviderDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Today's Patients</p>
-                  <p className="text-3xl font-bold text-gray-900">24</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '24'}</p>
                 </div>
                 <Users className="w-8 h-8 text-green-500" />
               </div>
@@ -62,7 +82,7 @@ const ProviderDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Pending Claims</p>
-                  <p className="text-3xl font-bold text-gray-900">8</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '8'}</p>
                 </div>
                 <FileText className="w-8 h-8 text-blue-500" />
               </div>
@@ -74,7 +94,7 @@ const ProviderDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Appointments</p>
-                  <p className="text-3xl font-bold text-gray-900">12</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '12'}</p>
                 </div>
                 <Calendar className="w-8 h-8 text-purple-500" />
               </div>
@@ -86,7 +106,7 @@ const ProviderDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Revenue (Month)</p>
-                  <p className="text-3xl font-bold text-gray-900">$45.2K</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '$0' : '$45.2K'}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-green-600" />
               </div>

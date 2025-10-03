@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { 
@@ -15,6 +15,26 @@ import {
 } from 'lucide-react';
 
 const PayorDashboard = () => {
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    // Get user data from localStorage or API
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserData(user);
+      
+      // Check if this is a new user
+      const isNew = user._id && user._id.includes('new') ||
+                    !user.profile?.companyName ||
+                    user.profile?.companyName === 'Insurance Corp' ||
+                    new Date() - new Date(user.createdAt || 0) < 24 * 60 * 60 * 1000; // Less than 24 hours
+      
+      setIsNewUser(isNew);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Header */}
@@ -51,7 +71,7 @@ const PayorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Pending Claims</p>
-                  <p className="text-3xl font-bold text-gray-900">156</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '156'}</p>
                 </div>
                 <Clock className="w-8 h-8 text-yellow-500" />
               </div>
@@ -63,7 +83,7 @@ const PayorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Claims Processed</p>
-                  <p className="text-3xl font-bold text-gray-900">1,247</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '1,247'}</p>
                 </div>
                 <FileCheck className="w-8 h-8 text-green-500" />
               </div>
@@ -75,7 +95,7 @@ const PayorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Payouts</p>
-                  <p className="text-3xl font-bold text-gray-900">$2.4M</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '$0' : '$2.4M'}</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-blue-500" />
               </div>
@@ -87,7 +107,7 @@ const PayorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Fraud Alerts</p>
-                  <p className="text-3xl font-bold text-gray-900">12</p>
+                  <p className="text-3xl font-bold text-gray-900">{isNewUser ? '0' : '12'}</p>
                 </div>
                 <AlertTriangle className="w-8 h-8 text-red-500" />
               </div>

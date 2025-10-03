@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -27,9 +27,82 @@ function PatientDashboard() {
   const [selectedClaim, setSelectedClaim] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showAllClaims, setShowAllClaims] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  
+  // Check if user is new (recently registered) vs existing user
+  const [userData, setUserData] = useState(null);
+  const [isNewUser, setIsNewUser] = useState(false);
 
-  // Mock data
-  const insuranceInfo = {
+  useEffect(() => {
+    // Get user data from localStorage
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      const user = JSON.parse(storedUserData);
+      setUserData(user);
+      
+      // Check if user is new (created within last 5 minutes or has MongoDB _id)
+      const isRecentlyCreated = user._id && user.createdAt && 
+        new Date(user.createdAt) > new Date(Date.now() - 5 * 60 * 1000);
+      
+      // New user if: has MongoDB _id (from registration) OR doesn't have predefined profile data
+      const hasMinimalProfile = !user.profile?.memberId || user.profile?.memberId?.startsWith('MEM' + Date.now().toString().slice(-5));
+      
+      const newUser = isRecentlyCreated || hasMinimalProfile || !user.profile?.insuranceProvider || user.profile?.insuranceProvider === 'Default Insurance';
+      setIsNewUser(newUser);
+
+      // Initialize notifications based on user type
+      const initialNotifications = newUser ? [
+        {
+          id: 1,
+          type: 'welcome',
+          title: 'Welcome to Your Healthcare Portal',
+          message: 'Complete your profile setup to get started with managing your healthcare.',
+          time: 'Just now',
+          unread: true
+        }
+      ] : [
+        {
+          id: 1,
+          type: 'approval',
+          title: 'Claim Approved',
+          message: 'Your emergency visit claim (CLM-2024-001) has been approved for $1,250',
+          time: '2 hours ago',
+          unread: true
+        },
+        {
+          id: 2,
+          type: 'action_required',
+          title: 'Documents Needed',
+          message: 'Additional documentation required for claim CLM-2024-002',
+          time: '1 day ago',
+          unread: true
+        },
+        {
+          id: 3,
+          type: 'denial',
+          title: 'Claim Denied',
+          message: 'Claim CLM-2024-003 was denied. You can appeal this decision.',
+          time: '3 days ago',
+          unread: false
+        }
+      ];
+      
+      setNotifications(initialNotifications);
+    }
+  }, []);
+
+  // Mock data - conditional based on user type
+  const insuranceInfo = isNewUser ? {
+    policyNumber: 'Pending Setup',
+    provider: userData?.profile?.insuranceProvider || 'Not Set',
+    coverageStatus: 'Setup Required',
+    expiryDate: 'Not Available',
+    deductible: 'Not Set',
+    deductibleMet: '$0',
+    outOfPocketMax: 'Not Set',
+    outOfPocketMet: '$0'
+  } : {
     policyNumber: 'BC-789-456-123',
     provider: 'BlueCross BlueShield',
     coverageStatus: 'Active',
@@ -40,7 +113,7 @@ function PatientDashboard() {
     outOfPocketMet: '$1,200'
   };
 
-  const claims = [
+  const claims = isNewUser ? [] : [
     {
       id: 'CLM-2024-001',
       provider: 'City General Hospital',
@@ -70,33 +143,6 @@ function PatientDashboard() {
       status: 'denied',
       progress: 100,
       description: 'Cardiac stress test and consultation'
-    }
-  ];
-
-  const notifications = [
-    {
-      id: 1,
-      type: 'approval',
-      title: 'Claim Approved',
-      message: 'Your emergency visit claim (CLM-2024-001) has been approved for $1,250',
-      time: '2 hours ago',
-      unread: true
-    },
-    {
-      id: 2,
-      type: 'action_required',
-      title: 'Documents Needed',
-      message: 'Additional documentation required for claim CLM-2024-002',
-      time: '1 day ago',
-      unread: true
-    },
-    {
-      id: 3,
-      type: 'denial',
-      title: 'Claim Denied',
-      message: 'Claim CLM-2024-003 was denied. You can appeal this decision.',
-      time: '3 days ago',
-      unread: false
     }
   ];
 
@@ -162,16 +208,48 @@ function PatientDashboard() {
     alert(`Document "${filename}" has been downloaded successfully!`);
   };
 
+  // Notification handlers
+  const handleMarkAsRead = (notificationId) => {
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, unread: false }
+          : notification
+      )
+    );
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => ({ ...notification, unread: false }))
+    );
+  };
+
   const handleViewAllNotifications = () => {
     setShowNotifications(true);
   };
 
   const handleUploadDocuments = () => {
-    alert('Upload Documents functionality - This would open a file picker to upload medical documents, receipts, or other claim-related files.');
+    // Create a hidden file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
+    
+    fileInput.onchange = (event) => {
+      const files = event.target.files;
+      if (files.length > 0) {
+        const fileNames = Array.from(files).map(file => file.name).join(', ');
+        alert(`Successfully selected ${files.length} file(s): ${fileNames}\n\nIn a real application, these would be uploaded to the server and associated with your account.`);
+      }
+    };
+    
+    // Trigger the file picker
+    fileInput.click();
   };
 
   const handleViewAllClaims = () => {
-    alert('View All Claims - This would navigate to a comprehensive claims history page with filtering and search options.');
+    setShowAllClaims(true);
   };
 
   return (
@@ -270,7 +348,19 @@ function PatientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {claims.map((claim) => (
+                {claims.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Claims Yet</h3>
+                    <p className="text-gray-500">
+                      {isNewUser 
+                        ? "Welcome! Once you submit your first claim, it will appear here." 
+                        : "You don't have any claims to display at the moment."
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  claims.map((claim) => (
                   <div key={claim.id} className="p-6 border border-gray-200 rounded-2xl bg-white hover:shadow-sm transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
@@ -326,7 +416,8 @@ function PatientDashboard() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -503,14 +594,26 @@ function PatientDashboard() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">All Notifications</h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowNotifications(false)}
-                  className="rounded-lg"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center space-x-2">
+                  {notifications.some(n => n.unread) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleMarkAllAsRead}
+                      className="rounded-lg"
+                    >
+                      Mark All as Read
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowNotifications(false)}
+                    className="rounded-lg"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -535,9 +638,16 @@ function PatientDashboard() {
                         <p className="text-gray-700 mb-3">{notification.message}</p>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-gray-500">{notification.time}</p>
-                          <Button variant="outline" size="sm" className="rounded-lg">
-                            Mark as Read
-                          </Button>
+                          {notification.unread && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="rounded-lg"
+                              onClick={() => handleMarkAsRead(notification.id)}
+                            >
+                              Mark as Read
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -549,6 +659,173 @@ function PatientDashboard() {
                 <Button 
                   variant="outline"
                   onClick={() => setShowNotifications(false)}
+                  className="rounded-lg"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Claims Modal */}
+      {showAllClaims && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">All Claims History</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAllClaims(false)}
+                  className="rounded-lg"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="mb-4 flex space-x-4">
+                <input 
+                  type="text" 
+                  placeholder="Search claims..." 
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">All Status</option>
+                  <option value="approved">Approved</option>
+                  <option value="processing">Processing</option>
+                  <option value="denied">Denied</option>
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                {/* Extended claims list - conditional based on user type */}
+                {isNewUser ? (
+                  <div className="text-center py-16">
+                    <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">No Claims History</h3>
+                    <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                      You haven't submitted any claims yet. When you do, they'll appear here with detailed tracking information.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowAllClaims(false);
+                        setActiveModal('submitClaim');
+                      }}
+                      className="rounded-xl"
+                    >
+                      Submit Your First Claim
+                    </Button>
+                  </div>
+                ) : (
+                  [...claims, 
+                    {
+                      id: 'CLM-2024-004',
+                      provider: 'Regional Eye Care',
+                      service: 'Eye Examination',
+                      date: '2023-12-20',
+                      amount: '$275',
+                      status: 'approved',
+                      progress: 100,
+                      description: 'Annual comprehensive eye exam and vision screening'
+                    },
+                    {
+                      id: 'CLM-2024-005',
+                      provider: 'Metro Dental Associates',
+                      service: 'Dental Cleaning',
+                      date: '2023-12-10',
+                      amount: '$180',
+                      status: 'approved',
+                      progress: 100,
+                      description: 'Routine dental cleaning and examination'
+                    },
+                    {
+                      id: 'CLM-2024-006',
+                      provider: 'Physical Therapy Center',
+                      service: 'Physical Therapy',
+                      date: '2023-11-25',
+                      amount: '$450',
+                      status: 'processing',
+                      progress: 40,
+                      description: 'Lower back physical therapy sessions (6 visits)'
+                    }
+                  ].map((claim) => (
+                  <div key={claim.id} className="p-6 border border-gray-200 rounded-2xl bg-white hover:shadow-sm transition-shadow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        {getStatusIcon(claim.status)}
+                        <div>
+                          <p className="text-gray-900 font-medium">{claim.service}</p>
+                          <p className="text-sm text-gray-500">{claim.provider}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg text-gray-900">{claim.amount}</p>
+                        <Badge className={getStatusColor(claim.status)}>
+                          {claim.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Claim ID: {claim.id}</span>
+                        <span>Date: {claim.date}</span>
+                      </div>
+                      
+                      <p className="text-sm text-gray-700">{claim.description}</p>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Processing Progress</span>
+                          <span>{claim.progress}%</span>
+                        </div>
+                        <Progress value={claim.progress} className="h-2" />
+                      </div>
+                      
+                      <div className="flex space-x-2 pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewDetails(claim)}
+                          className="rounded-lg"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDownload(claim)}
+                          className="rounded-lg"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  ))
+                )}
+              </div>
+
+              {!isNewUser && (
+                <div className="flex justify-between items-center pt-6">
+                  <p className="text-sm text-gray-600">Showing 6 of 15 total claims</p>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" className="rounded-lg">Previous</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg">Next</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowAllClaims(false)}
                   className="rounded-lg"
                 >
                   Close

@@ -1,4 +1,4 @@
-import { Shield, User, Bell, Heart, CheckCircle, XCircle, Clock, Upload, Eye, Download, AlertCircle } from 'lucide-react';
+import { Shield, User, Heart, CheckCircle, XCircle, Clock, Upload, Eye, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logoutUser } from '@/services/apiService';
 
@@ -47,10 +47,6 @@ export default function Header({ user, onLogout }) {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className="relative hover:bg-gray-100 rounded-xl">
-            <Bell className="h-5 w-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-          </Button>
           <div className="flex items-center space-x-4 px-3 py-2 bg-gray-50 rounded-xl">
             <div className="flex items-center space-x-3">
               <div className={`p-2 rounded-lg ${getUserColor()}`}>
