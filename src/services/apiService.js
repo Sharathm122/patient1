@@ -1,5 +1,7 @@
 // MongoDB Backend API Service
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use a relative path so Vite's dev server proxy (configured in vite.config.js) forwards
+// requests to the Django backend. Avoids hard-coding a port.
+const API_BASE_URL = '/api';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
